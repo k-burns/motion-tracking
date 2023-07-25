@@ -1,0 +1,17 @@
+<div class="min-h-screen flex flex-col">
+    <div class="flex-1 flex flex-col justify-center mx-auto max-w-7xl">
+      <div class="flex flex-col items-center justify-center">
+        <button :if={!@running?} phx-click="start">
+          play
+        </button>
+      </div>
+
+      <div :if={@running?} class="flex flex-col gap-4">
+        <img :if={@image} src={["data:image/jpg;base64,", @image]} class="max-w-3xl" />
+
+        <p :if={@prediction} class="text-2xl">
+          <%= @prediction %>
+        </p>
+      </div>
+    </div>
+  </div>
