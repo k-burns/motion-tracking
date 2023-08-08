@@ -1,6 +1,5 @@
 defmodule MyAppWeb.HomeLive.Index do
   use MyAppWeb, :live_view
-  import Bitwise
 
   @impl true
   def mount(_params, _, socket) do
@@ -28,16 +27,56 @@ defmodule MyAppWeb.HomeLive.Index do
 
   @impl true
 
+  def handle_info(:run, %{assigns: %{running?: true, prediction: nil}} = socket) do
+    frame = socket.assigns.video |> Evision.VideoCapture.read()
+
+    myimage_grey =
+      Evision.cvtColor(frame, Evision.Constant.cv_COLOR_BGR2GRAY())
+      |> Evision.gaussianBlur({23, 23}, 30)
+
+    {_ret, baseline} =
+      Evision.threshold(myimage_grey, 127, 255, Evision.Constant.cv_THRESH_TRUNC())
+
+    {_ret, background} =
+      Evision.threshold(baseline, 126, 255, Evision.Constant.cv_THRESH_BINARY())
+
+    {contours, _} =
+      Evision.findContours(
+        background,
+        Evision.Constant.cv_RETR_LIST(),
+        Evision.Constant.cv_CHAIN_APPROX_NONE()
+      )
+
+    if length(contours) > 0 do
+      [contour | _contours] =
+        Enum.sort(contours, &(&1 |> Evision.contourArea() >= &2 |> Evision.contourArea()))
+      clone = Evision.Mat.clone(frame)
+      foreground = clone |> Evision.fillPoly([contour], {255, 255, 255})
+      prediction = predict(socket.assigns.serving, foreground)
+
+      send(self(), :run)
+
+      {:noreply,
+       socket
+       |> assign(prediction: prediction)
+      }
+    else
+      send(self(), :run)
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+
   def handle_info(:run, %{assigns: %{running?: true}} = socket) do
     frame = socket.assigns.video |> Evision.VideoCapture.read()
 
-    [predication, image] = predict(socket.assigns.serving, frame)
+    image = track(frame)
 
     send(self(), :run)
 
     {:noreply,
      socket
-     |> assign(prediction: predication)
      |> assign(image: Evision.imencode(".jpg", image) |> Base.encode64())}
   end
 
@@ -45,39 +84,20 @@ defmodule MyAppWeb.HomeLive.Index do
 
   defp predict(serving, frame) do
     pred_tensor = frame |> Evision.Mat.to_nx() |> Nx.backend_transfer()
-    tensor = frame |> Evision.cvtColor(7) |> Evision.gaussianBlur({7, 7}, 1)
-    canny = Evision.canny(tensor, 50, 190)
-    kernel = Evision.Mat.ones({3, 3}, :u8)
-    di = Evision.dilate(canny, kernel, iterations: 3)
-    closed = Evision.morphologyEx(di, Evision.Constant.cv_MORPH_CLOSE(), kernel)
+    %{predictions: [%{label: label}]} = Nx.Serving.run(serving, pred_tensor)
+
+    label
+  end
+
+  defp track(frame) do
+    tensor = frame |> Evision.cvtColor(7) |> Evision.gaussianBlur({23, 23}, 30)
 
     {contours, _} =
       Evision.findContours(
-        closed,
+        tensor,
         Evision.Constant.cv_RETR_LIST(),
         Evision.Constant.cv_CHAIN_APPROX_NONE()
       )
-
-    minimal_area = 100
-
-    contours =
-      Enum.reject(contours, fn c ->
-        # Calculate the area of each contour
-        area = Evision.contourArea(c)
-        # Ignore contours that are too small or too large
-        # (return true to reject)
-        area < minimal_area
-      end)
-
-    # Enum.map(contours, fn c ->
-    #   # area = Evision.contourArea(c)
-    #   {x, y, w, h} = Evision.boundingRect(c)
-    #   cropped_img=tensor[y: y+h, x: x+w]
-    #   img_name= "#{x}.jpg"
-    #   Evision.imwrite(img_name, cropped_img)
-    # end)
-
-    # IO.inspect("#{Enum.count(contours)} contour(s) remains")
 
     # color in {Blue, Green, Red}, range from 0-255
     edge_color = {0, 0, 255}
@@ -88,10 +108,7 @@ defmodule MyAppWeb.HomeLive.Index do
     # # Load image in color
 
     # # draw all contours on the color image
-    image = Evision.drawContours(frame, contours, index, edge_color, thickness: 2)
-    %{predictions: [%{label: label}]} = Nx.Serving.run(serving, pred_tensor)
-
-    [label, image]
+    Evision.drawContours(frame, contours, index, edge_color, thickness: 2)
   end
 
   defp serving do
