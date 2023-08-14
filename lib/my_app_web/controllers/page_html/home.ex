@@ -34,22 +34,7 @@ defmodule MyAppWeb.HomeLive.Index do
   def handle_info(:run, %{assigns: %{running?: true, prediction: nil}} = socket) do
     frame = socket.assigns.video |> Evision.VideoCapture.read()
 
-    myimage_grey =
-      Evision.cvtColor(frame, Evision.Constant.cv_COLOR_BGR2GRAY())
-      |> Evision.gaussianBlur({23, 23}, 30)
-
-    {_ret, baseline} =
-      Evision.threshold(myimage_grey, 127, 255, Evision.Constant.cv_THRESH_TRUNC())
-
-    {_ret, background} =
-      Evision.threshold(baseline, 126, 255, Evision.Constant.cv_THRESH_BINARY())
-
-    {contours, _} =
-      Evision.findContours(
-        background,
-        Evision.Constant.cv_RETR_LIST(),
-        Evision.Constant.cv_CHAIN_APPROX_NONE()
-      )
+    contours = find_contours(frame)
 
     if length(contours) > 0 do
       [contour | _contours] =
@@ -94,30 +79,16 @@ defmodule MyAppWeb.HomeLive.Index do
   end
 
   defp track(frame) do
-    tensor =
-      frame
-      |> Evision.gaussianBlur({7, 7}, 1)
-      |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2GRAY())
+    contours = find_contours(frame)
 
-    background = Evision.adaptiveThreshold(tensor, 255, 0, 0, 25, 10)
-    kernel = Evision.Mat.ones({5, 5}, :u8)
-    background = Evision.erode(background, kernel, iterations: 1)
-    background = Evision.morphologyEx(background, Evision.Constant.cv_MORPH_OPEN(), kernel)
-
-    {contours, _} =
-      Evision.findContours(
-        background,
-        Evision.Constant.cv_RETR_TREE(),
-        Evision.Constant.cv_CHAIN_APPROX_SIMPLE()
-      )
-
-    minimal_area = 50000
+    minimal_area = 5000
+    maximum_area = 500_000
 
     contours =
       Enum.reject(contours, fn c ->
         area = Evision.contourArea(c)
 
-        area < minimal_area
+        area < minimal_area || area > maximum_area
       end)
 
     new_frame =
@@ -146,5 +117,26 @@ defmodule MyAppWeb.HomeLive.Index do
       compile: [batch_size: 1],
       defn_options: [compiler: EXLA]
     )
+  end
+
+  defp find_contours(frame) do
+    myimage_grey =
+      Evision.cvtColor(frame, Evision.Constant.cv_COLOR_BGR2GRAY())
+      |> Evision.gaussianBlur({23, 23}, 30)
+
+    {_ret, baseline} =
+      Evision.threshold(myimage_grey, 127, 255, Evision.Constant.cv_THRESH_TRUNC())
+
+    {_ret, background} =
+      Evision.threshold(baseline, 126, 255, Evision.Constant.cv_THRESH_BINARY())
+
+    {contours, _} =
+      Evision.findContours(
+        background,
+        Evision.Constant.cv_RETR_LIST(),
+        Evision.Constant.cv_CHAIN_APPROX_NONE()
+      )
+
+    contours
   end
 end
