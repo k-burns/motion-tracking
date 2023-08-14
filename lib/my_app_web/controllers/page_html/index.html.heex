@@ -1,9 +1,14 @@
 <div class="min-h-screen flex flex-col">
   <div class="flex-1 flex flex-col justify-center mx-auto max-w-7xl">
     <div class="flex flex-col items-center justify-center">
-      <button :if={!@running?} phx-click="start">
-        play
-      </button>
+      <%= if !@running? do %>
+        <div>Image URL</div>
+        <input />
+        <.form :let={f} for={%{}} as={:video_input} phx-submit="start">
+          <%= Form.text_input(f, :video_path) %>
+          <.button type="submit">Start Video</.button>
+        </.form>
+      <% end %>
     </div>
 
     <div :if={@running?} class="flex flex-col gap-4">

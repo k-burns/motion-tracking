@@ -1,5 +1,6 @@
 defmodule MyAppWeb.HomeLive.Index do
   use MyAppWeb, :live_view
+  alias Phoenix.HTML.Form
 
   @impl true
   def mount(_params, _, socket) do
@@ -9,20 +10,23 @@ defmodule MyAppWeb.HomeLive.Index do
      |> assign(image: nil)
      |> assign(prediction: nil)
      |> assign(serving: serving())
-     |> assign(
-       video:
-         Evision.VideoCapture.videoCapture(
-           "/Users/katelynnburns/Documents/Zoom/2023-07-25 10.51.03 Katelynn (she_her)'s Zoom Meeting/video1536544321.mp4"
-         )
-     )}
+     |> assign(video: nil)}
   end
 
   @impl true
 
-  def handle_event("start", _params, socket) do
+  def handle_event("start", %{"video_input" => %{"video_path" => path}}, socket) do
     send(self(), :run)
 
-    {:noreply, assign(socket, running?: true)}
+    {:noreply, assign(socket, running?: true, video: Evision.VideoCapture.videoCapture(path))}
+  end
+
+  @impl true
+
+  def handle_event("start_camera", _params, socket) do
+    send(self(), :run)
+
+    {:noreply, assign(socket, running?: true, video: Evision.VideoCapture.videoCapture())}
   end
 
   @impl true
