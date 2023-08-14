@@ -50,6 +50,7 @@ defmodule MyAppWeb.HomeLive.Index do
     if length(contours) > 0 do
       [contour | _contours] =
         Enum.sort(contours, &(&1 |> Evision.contourArea() >= &2 |> Evision.contourArea()))
+
       clone = Evision.Mat.clone(frame)
       foreground = clone |> Evision.fillPoly([contour], {255, 255, 255})
       prediction = predict(socket.assigns.serving, foreground)
@@ -58,8 +59,7 @@ defmodule MyAppWeb.HomeLive.Index do
 
       {:noreply,
        socket
-       |> assign(prediction: prediction)
-      }
+       |> assign(prediction: prediction)}
     else
       send(self(), :run)
       {:noreply, socket}
@@ -90,25 +90,47 @@ defmodule MyAppWeb.HomeLive.Index do
   end
 
   defp track(frame) do
-    tensor = frame |> Evision.cvtColor(7) |> Evision.gaussianBlur({23, 23}, 30)
+    tensor =
+      frame
+      |> Evision.gaussianBlur({7, 7}, 1)
+      |> Evision.cvtColor(Evision.Constant.cv_COLOR_BGR2GRAY())
+
+    background = Evision.adaptiveThreshold(tensor, 255, 0, 0, 25, 10)
+    kernel = Evision.Mat.ones({5, 5}, :u8)
+    background = Evision.erode(background, kernel, iterations: 1)
+    background = Evision.morphologyEx(background, Evision.Constant.cv_MORPH_OPEN(), kernel)
 
     {contours, _} =
       Evision.findContours(
-        tensor,
-        Evision.Constant.cv_RETR_LIST(),
-        Evision.Constant.cv_CHAIN_APPROX_NONE()
+        background,
+        Evision.Constant.cv_RETR_TREE(),
+        Evision.Constant.cv_CHAIN_APPROX_SIMPLE()
       )
 
-    # color in {Blue, Green, Red}, range from 0-255
+    minimal_area = 50000
+
+    contours =
+      Enum.reject(contours, fn c ->
+        area = Evision.contourArea(c)
+
+        area < minimal_area
+      end)
+
+    new_frame =
+      if contours != [] do
+        Enum.reduce(contours, frame, fn c, acc ->
+          {x, y, w, h} = Evision.boundingRect(c)
+          Evision.rectangle(acc, {x, y}, {x + w, y + h}, {255, 0, 0}, thickness: 4, lineType: 4)
+        end)
+      else
+        frame
+      end
+
     edge_color = {0, 0, 255}
 
-    # # draw all contours by setting `index` to `-1`
     index = -1
 
-    # # Load image in color
-
-    # # draw all contours on the color image
-    Evision.drawContours(frame, contours, index, edge_color, thickness: 2)
+    Evision.drawContours(new_frame, contours, index, edge_color, thickness: 4)
   end
 
   defp serving do
