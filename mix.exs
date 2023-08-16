@@ -52,7 +52,6 @@ defmodule MyApp.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:bumblebee, "~> 0.3.0"},
       {:exla, ">= 0.0.0"},
-      {:stb_image, "~> 0.6"},
       {:evision, "~> 0.1.27"}
     ]
   end
