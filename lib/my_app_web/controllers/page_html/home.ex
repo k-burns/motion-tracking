@@ -40,8 +40,7 @@ defmodule MyAppWeb.HomeLive.Index do
       [contour | _contours] =
         Enum.sort(contours, &(&1 |> Evision.contourArea() >= &2 |> Evision.contourArea()))
 
-      clone = Evision.Mat.clone(frame)
-      foreground = clone |> Evision.fillPoly([contour], {255, 255, 255})
+      foreground = frame |> Evision.fillPoly([contour], {255, 255, 255})
       prediction = predict(socket.assigns.serving, foreground)
 
       send(self(), :run)
