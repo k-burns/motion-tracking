@@ -123,11 +123,8 @@ defmodule MyAppWeb.HomeLive.Index do
       Evision.cvtColor(frame, Evision.Constant.cv_COLOR_BGR2GRAY())
       |> Evision.gaussianBlur({23, 23}, 30)
 
-    {_ret, baseline} =
-      Evision.threshold(myimage_grey, 127, 255, Evision.Constant.cv_THRESH_TRUNC())
-
     {_ret, background} =
-      Evision.threshold(baseline, 126, 255, Evision.Constant.cv_THRESH_BINARY())
+      Evision.threshold(myimage_grey, 126, 255, Evision.Constant.cv_THRESH_BINARY())
 
     {contours, _} =
       Evision.findContours(
