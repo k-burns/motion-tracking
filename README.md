@@ -13,7 +13,7 @@ https://www.linkedin.com/in/katelynn-burns/
 
 ## Pesentation on application
 
-https://drive.google.com/file/d/1V_lKA4-fs4bXg93-gZe033lYiJjx00Oh/view?usp=sharing
+https://drive.google.com/file/d/1cdvezIkrHNCcDEJGdSMGM7jCcTap9_O6/view?usp=sharing
 
 ## Documents
 
