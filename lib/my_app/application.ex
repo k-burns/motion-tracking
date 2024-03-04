@@ -17,6 +17,8 @@ defmodule MyApp.Application do
       # Start Finch
       {Finch, name: MyApp.Finch},
       # Start the Endpoint (http/https)
+      {Registry, keys: :duplicate, name: MyApp.Events},
+      MyApp.Prediction,
       MyAppWeb.Endpoint
       # Start a worker by calling: MyApp.Worker.start_link(arg)
       # {MyApp.Worker, arg}
