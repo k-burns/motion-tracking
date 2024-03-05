@@ -16,21 +16,12 @@ defmodule MyAppWeb.HomeLive.Index do
 
   @impl true
 
-  def handle_event("start", %{"video_input" => %{"video_path" => ""}}, socket) do
-    video = Evision.VideoCapture.videoCapture(0)
-    send(self(), :run)
-    Events.notify(:predict, %{video: video})
-
-    {:noreply, assign(socket, running?: true, video: video)}
-  end
-
-  @impl true
-
   def handle_event("start", %{"video_input" => %{"video_path" => path}}, socket) do
+    path = if path == "", do: 0, else: path
     video = Evision.VideoCapture.videoCapture(path)
+
     send(self(), :run)
     Events.notify(:predict, %{video: video})
-
 
     {:noreply, assign(socket, running?: true, video: video)}
   end
@@ -62,9 +53,7 @@ defmodule MyAppWeb.HomeLive.Index do
 
   @impl true
 
-  def handle_info(_msg, socket) do
-    {:noreply, socket}
-   end
+  def handle_info(_msg, socket), do: {:noreply, socket}
 
   defp track(frame) do
     contours = find_contours(frame)

@@ -12,13 +12,6 @@ defmodule MyApp.Prediction do
     {:ok, %{}}
   end
 
-  defp predict(serving, frame) do
-    pred_tensor = frame |> Evision.Mat.to_nx() |> Nx.backend_transfer()
-    %{predictions: [%{label: label}]} = Nx.Serving.run(serving, pred_tensor)
-
-    label
-  end
-
   def handle_info(
         {:predict, %{video: video}}, state
       ) do
@@ -27,6 +20,13 @@ defmodule MyApp.Prediction do
         Phoenix.PubSub.broadcast(MyApp.PubSub, "Prediction", {:prediction, prediction})
 
     {:noreply, state}
+  end
+
+  defp predict(serving, frame) do
+    pred_tensor = frame |> Evision.Mat.to_nx() |> Nx.backend_transfer()
+    %{predictions: [%{label: label}]} = Nx.Serving.run(serving, pred_tensor)
+
+    label
   end
 
   defp serving do
