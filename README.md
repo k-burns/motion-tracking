@@ -11,9 +11,11 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 https://www.linkedin.com/in/katelynn-burns/
 
-## Pesentation on application
+## Pesentations on application
 
 https://drive.google.com/file/d/1cdvezIkrHNCcDEJGdSMGM7jCcTap9_O6/view?usp=sharing
+
+https://drive.google.com/file/d/1kfuAzKRQmKi_QmpbSr0wENdQFHWaple0/view?usp=drive_link
 
 ## Documents
 
